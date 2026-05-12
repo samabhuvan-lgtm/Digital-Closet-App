@@ -267,70 +267,96 @@ async function handleAuthSubmit(event) {
 }
 
 async function signIn(email, password) {
-  const response = await fetch("/api/signin", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ email, password }),
-  });
+  try {
+    const response = await fetch("/api/signin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ email, password }),
+    });
 
-  if (!response.ok) {
-    const payload = await response.json().catch(() => ({}));
-    state.auth.error = payload.error || "Invalid credentials.";
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      state.auth.error = normalizeApiError(payload, "Invalid credentials.");
+      render();
+      return;
+    }
+
+    const { user } = await response.json();
+    state.auth.user = user;
+    state.auth.route = authRoute.CLOSET;
+    state.auth.error = null;
+    loadStateForUser();
     render();
-    return;
+  } catch {
+    state.auth.error =
+      "Could not reach the server. From the project folder run npm start, then open the URL shown in the terminal (not the HTML file directly).";
+    render();
   }
-
-  const { user } = await response.json();
-  state.auth.user = user;
-  state.auth.route = authRoute.CLOSET;
-  state.auth.error = null;
-  loadStateForUser();
-  render();
 }
 
 async function signUp(email, password) {
-  const response = await fetch("/api/signup", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ email, password }),
-  });
+  try {
+    const response = await fetch("/api/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ email, password }),
+    });
 
-  if (!response.ok) {
-    const payload = await response.json().catch(() => ({}));
-    state.auth.error = payload.error || "Unable to register.";
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      state.auth.error = normalizeApiError(payload, "Unable to register.");
+      render();
+      return;
+    }
+
+    const { user } = await response.json();
+    state.auth.user = user;
+    state.auth.route = authRoute.CLOSET;
+    state.auth.error = null;
+    loadStateForUser();
     render();
-    return;
+  } catch {
+    state.auth.error =
+      "Could not reach the server. From the project folder run npm start, then open the URL shown in the terminal (not the HTML file directly).";
+    render();
   }
-
-  const { user } = await response.json();
-  state.auth.user = user;
-  state.auth.route = authRoute.CLOSET;
-  state.auth.error = null;
-  loadStateForUser();
-  render();
 }
 
 async function checkAuth() {
-  const response = await fetch("/api/me", {
-    credentials: "include",
-  });
+  try {
+    const response = await fetch("/api/me", {
+      credentials: "include",
+    });
 
-  if (!response.ok) {
+    if (!response.ok) {
+      state.auth.route = authRoute.SIGN_IN;
+      state.auth.user = null;
+      state.auth.error = null;
+      render();
+      return;
+    }
+
+    const { user } = await response.json();
+    state.auth.user = user;
+    state.auth.route = authRoute.CLOSET;
+    state.auth.error = null;
+    loadStateForUser();
+    render();
+  } catch {
     state.auth.route = authRoute.SIGN_IN;
     state.auth.user = null;
-    state.auth.error = null;
+    state.auth.error =
+      "Could not reach the server. From the project folder run npm start, then open the URL shown in the terminal (not the HTML file directly).";
     render();
-    return;
   }
+}
 
-  const { user } = await response.json();
-  state.auth.user = user;
-  state.auth.route = authRoute.CLOSET;
-  state.auth.error = null;
-  loadStateForUser();
-  render();
+function normalizeApiError(payload, fallback) {
+  const err = payload?.error;
+  if (typeof err === "string" && err.trim()) return err;
+  return fallback;
 }
 
 function loadStateForUser() {

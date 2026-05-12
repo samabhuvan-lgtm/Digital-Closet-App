@@ -1,5 +1,6 @@
 export function escapeHtml(value) {
-  return value.replace(/[&<>"']/g, (character) => {
+  const text = value == null ? "" : String(value);
+  return text.replace(/[&<>"']/g, (character) => {
     const entities = {
       "&": "&amp;",
       "<": "&lt;",
